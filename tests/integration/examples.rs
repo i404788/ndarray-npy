@@ -453,10 +453,7 @@ fn record_reading() {
     }
 
     impl RecordFromSlice for Record {
-        const SIZE: usize = 8;
-
         fn from_raw_slice<R: std::io::Read>(
-            type_descr: &py_literal::Value,
             reader: &mut R,
         ) -> Result<Self, ndarray_npy::ReadDataError> {
             let mut buf = [0u8; 4];
@@ -470,6 +467,10 @@ fn record_reading() {
                 .map_err(ndarray_npy::ReadDataError::Io)?;
             let y = i32::from_le_bytes(buf);
             Ok(Record { x, y })
+        }
+
+        fn compatible_schema(type_descr: &py_literal::Value) -> bool {
+            true
         }
     }
 

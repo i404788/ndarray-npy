@@ -2,14 +2,9 @@ use crate::{ReadDataError, ReadableElement};
 use py_literal::Value as PyValue;
 
 pub trait RecordFromSlice: Sized {
-    const SIZE: usize;
+    fn compatible_schema(type_descr: &PyValue) -> bool;
 
-    // TODO(perf): validate type_descr once?
-
-    fn from_raw_slice<R: std::io::Read>(
-        type_descr: &PyValue,
-        reader: &mut R,
-    ) -> Result<Self, ReadDataError>;
+    fn from_raw_slice<R: std::io::Read>(reader: &mut R) -> Result<Self, ReadDataError>;
 }
 
 impl<T: RecordFromSlice> ReadableElement for T {
@@ -18,10 +13,13 @@ impl<T: RecordFromSlice> ReadableElement for T {
         type_desc: &PyValue,
         len: usize,
     ) -> Result<Vec<Self>, ReadDataError> {
-        let mut out = Vec::new(); // NOTE(perf): in theory could be MaybeUinitVec?
+        if !T::compatible_schema(type_desc) {
+            return Err(ReadDataError::WrongDescriptor(type_desc.clone()));
+        }
 
+        let mut out = Vec::with_capacity(len);
         for _ in 0..len {
-            out.push(RecordFromSlice::from_raw_slice(type_desc, &mut reader)?);
+            out.push(RecordFromSlice::from_raw_slice(&mut reader)?);
         }
 
         Ok(out)
