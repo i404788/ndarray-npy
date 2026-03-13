@@ -440,3 +440,45 @@ fn zeroed() {
     assert_eq!(arr, Array3::<i32>::zeros(SHAPE));
     assert!(arr.is_standard_layout());
 }
+
+#[cfg(target_endian = "little")]
+#[test]
+fn record_reading() {
+    use ndarray_npy::npy::RecordFromSlice;
+
+    #[derive(PartialEq, Debug)]
+    struct Record {
+        x: i32,
+        y: i32,
+    }
+
+    impl RecordFromSlice for Record {
+        const SIZE: usize = 8;
+
+        fn from_raw_slice<R: std::io::Read>(
+            type_descr: &py_literal::Value,
+            reader: &mut R,
+        ) -> Result<Self, ndarray_npy::ReadDataError> {
+            let mut buf = [0u8; 4];
+
+            reader
+                .read_exact(&mut buf)
+                .map_err(ndarray_npy::ReadDataError::Io)?;
+            let x = i32::from_le_bytes(buf);
+            reader
+                .read_exact(&mut buf)
+                .map_err(ndarray_npy::ReadDataError::Io)?;
+            let y = i32::from_le_bytes(buf);
+            Ok(Record { x, y })
+        }
+    }
+
+    // np.save("example_xy_little_endian_record", np.rec.array([(42, 42), (35, 35)], dtype=[('x', np.int32), ('y', np.int32)]))
+    let record_array: Array1<Record> =
+        ndarray_npy::read_npy("resources/example_xy_little_endian_record.npy")
+            .expect("Failed to load npy");
+
+    assert_eq!(record_array[0], Record { x: 42, y: 42 });
+    assert_eq!(record_array[1], Record { x: 35, y: 35 });
+    assert!(record_array.len() == 2);
+}
