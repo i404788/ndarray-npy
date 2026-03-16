@@ -1,8 +1,11 @@
+//! Currently only little-endian is supported
+
 use crate::{ReadDataError, ReadableElement};
-use py_literal::Value as PyValue;
+pub use ndarray_derive::RecordFromSlice;
+pub use py_literal;
 
 pub trait RecordFromSlice: Sized {
-    fn compatible_schema(type_descr: &PyValue) -> bool;
+    fn compatible_schema(type_descr: &py_literal::Value) -> bool;
 
     fn from_raw_slice<R: std::io::Read>(reader: &mut R) -> Result<Self, ReadDataError>;
 }
@@ -10,7 +13,7 @@ pub trait RecordFromSlice: Sized {
 impl<T: RecordFromSlice> ReadableElement for T {
     fn read_to_end_exact_vec<R: std::io::Read>(
         mut reader: R,
-        type_desc: &PyValue,
+        type_desc: &py_literal::Value,
         len: usize,
     ) -> Result<Vec<Self>, ReadDataError> {
         if !T::compatible_schema(type_desc) {
