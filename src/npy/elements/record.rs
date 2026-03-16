@@ -1,8 +1,8 @@
 //! Currently only little-endian is supported
 
 use crate::{ReadDataError, ReadableElement};
-pub use ndarray_derive::RecordFromSlice;
-pub use py_literal;
+// pub use ndarray_derive::RecordFromSlice;
+use py_literal;
 
 pub trait RecordFromSlice: Sized {
     fn compatible_schema(type_descr: &py_literal::Value) -> bool;
